@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de prueba y temporales
+test_*.py
+test_*.html
+*_test.html
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
