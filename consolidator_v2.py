@@ -98,8 +98,6 @@ class ReportConsolidatorV2:
     <div class="main-content">
         {self._generate_header()}
         
-        {executive_summary}
-        
         {''.join(sections_html)}
         
         {self._generate_footer()}
@@ -672,7 +670,7 @@ class ReportConsolidatorV2:
     
     def _generate_index(self) -> str:
         """Genera los items del índice lateral"""
-        items = ['<li><a href="#resumen-ejecutivo">📊 Resumen Ejecutivo</a></li>']
+        items = []  # <--- AÑADIR ESTA LÍNEA
         
         if self.baseline_html:
             items.append('<li><a href="#baseline">📐 Baseline Adjustment</a></li>')
