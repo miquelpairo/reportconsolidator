@@ -116,7 +116,14 @@ class ReportConsolidatorV2:
         tecnico = self.service_info.get('tecnico', 'N/A')
         ubicacion = self.service_info.get('ubicacion', 'N/A')
         modelo = self.service_info.get('modelo', 'N/A')
-        contexto = self.service_info.get('contexto', '')
+        
+        # Nuevos campos estructurados
+        mantenimiento = self.service_info.get('mantenimiento', False)
+        ajuste_baseline = self.service_info.get('ajuste_baseline', False)
+        lampara_referencia = self.service_info.get('lampara_referencia', '')
+        lampara_nueva = self.service_info.get('lampara_nueva', '')
+        validacion_optica = self.service_info.get('validacion_optica', False)
+        predicciones_muestras = self.service_info.get('predicciones_muestras', False)
         notas = self.service_info.get('notas', '')
         
         info_table = f"""
@@ -145,13 +152,54 @@ class ReportConsolidatorV2:
         </div>
         """
         
-        # Sección de contexto
+        # Sección de contexto del mantenimiento (estructurada)
         contexto_section = ""
-        if contexto:
+        
+        # Construir lista de actividades realizadas
+        actividades = []
+        if mantenimiento:
+            actividades.append("✓ Mantenimiento preventivo/correctivo")
+        if ajuste_baseline:
+            actividades.append("✓ Ajuste de Baseline a 0")
+        if validacion_optica:
+            actividades.append("✓ Validación con Estándares Ópticos")
+        if predicciones_muestras:
+            actividades.append("✓ Predicciones con Muestras Reales")
+        
+        # Información de lámparas
+        lamparas_info = ""
+        if lampara_referencia or lampara_nueva:
+            lamparas_rows = []
+            if lampara_referencia:
+                lamparas_rows.append(f"<tr><td><strong>Lámpara de Referencia</strong></td><td>{lampara_referencia}</td></tr>")
+            if lampara_nueva:
+                lamparas_rows.append(f"<tr><td><strong>Lámpara Nueva</strong></td><td>{lampara_nueva}</td></tr>")
+            
+            lamparas_info = f"""
+            <table style="width: 100%; margin-top: 15px;">
+                {''.join(lamparas_rows)}
+            </table>
+            """
+        
+        # Construir sección de contexto solo si hay información
+        if actividades or lamparas_info:
+            actividades_html = ""
+            if actividades:
+                actividades_list = ''.join([f"<li style='margin: 5px 0;'>{act}</li>" for act in actividades])
+                actividades_html = f"""
+                <div style="margin-bottom: 15px;">
+                    <strong>Actividades Realizadas:</strong>
+                    <ul style="margin-top: 10px; margin-bottom: 0;">
+                        {actividades_list}
+                    </ul>
+                </div>
+                """
+            
             contexto_section = f"""
             <div style="margin-top: 20px; padding: 20px; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
-                <h4 style="margin-top: 0;">📋 Contexto del Experimento / Mantenimiento</h4>
-                <p style="margin: 0; line-height: 1.6; white-space: pre-line;">{contexto}</p>
+                <h4 style="margin-top: 0;">🔧 Contexto del Mantenimiento</h4>
+                {actividades_html}
+                {lamparas_info}
             </div>
             """
         
@@ -167,7 +215,7 @@ class ReportConsolidatorV2:
         
         # Descripción detallada del informe (colapsable)
         descripcion = """
-        <details style="margin-top: 25px;">
+        <details open style="margin-top: 25px;">
             <summary style="cursor: pointer; padding: 20px; background-color: #ffffff; border-radius: 8px; border: 1px solid #dee2e6; list-style: none; user-select: none;">
                 <span style="font-size: 1.2em; font-weight: bold; color: #000000;">📖 Acerca de Este Informe</span>
                 <span style="float: right; color: #6c757d;">▶ Click para expandir</span>
@@ -720,7 +768,7 @@ class ReportConsolidatorV2:
         
         return f"""
         <div class="report-section" id="{section_id}">
-            <details>
+            <details open>
                 <summary class="section-header">
                     <h2>{title}</h2>
                 </summary>
@@ -945,7 +993,7 @@ h4 {
 .open-full-report-btn {
     display: inline-block;
     padding: 15px 30px;
-    background: linear-gradient(135deg, #64B445 0%, #289A93 100%);
+    background: #64B445;
     color: white;
     text-decoration: none;
     border-radius: 8px;
@@ -961,6 +1009,7 @@ h4 {
 .open-full-report-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    background-color: #289A93;
 }
 
 .open-full-report-btn:active {

@@ -81,7 +81,12 @@ def extract_service_info(baseline_html=None, validation_html=None, predictions_h
         'cliente': '',
         'ubicacion': '',
         'modelo': '',
-        'contexto': '',
+        'mantenimiento': False,
+        'ajuste_baseline': False,
+        'lampara_referencia': '',
+        'lampara_nueva': '',
+        'validacion_optica': False,
+        'predicciones_muestras': False,
         'notas': ''
     }
     
@@ -274,12 +279,51 @@ def main():
                 help="Modelo del espectrómetro NIR"
             )
         
-        contexto = st.text_area(
-            "Contexto del Experimento / Mantenimiento",
-            value=st.session_state.service_info.get('contexto', ''),
-            height=120,
-            help="Describe el contexto: tipo de mantenimiento, condiciones del experimento, lámparas comparadas, motivo de la intervención, etc."
-        )
+        # Sección de Contexto del Mantenimiento con campos estructurados
+        st.markdown("---")
+        st.markdown("#### 🔧 Contexto del Mantenimiento")
+        
+        col_ctx1, col_ctx2 = st.columns(2)
+        
+        with col_ctx1:
+            mantenimiento = st.checkbox(
+                "Mantenimiento",
+                value=st.session_state.service_info.get('mantenimiento', False),
+                help="¿Se realizó mantenimiento preventivo/correctivo?"
+            )
+            
+            ajuste_baseline = st.checkbox(
+                "Ajuste Baseline a 0",
+                value=st.session_state.service_info.get('ajuste_baseline', False),
+                help="¿Se realizó ajuste de baseline a cero?"
+            )
+            
+            validacion_optica = st.checkbox(
+                "Validación Estándares Ópticos",
+                value=st.session_state.service_info.get('validacion_optica', False),
+                help="¿Se validó con estándares ópticos?"
+            )
+        
+        with col_ctx2:
+            predicciones_muestras = st.checkbox(
+                "Predicciones de Muestras",
+                value=st.session_state.service_info.get('predicciones_muestras', False),
+                help="¿Se realizaron predicciones con muestras reales?"
+            )
+            
+            lampara_referencia = st.text_input(
+                "Lámpara de Referencia",
+                value=st.session_state.service_info.get('lampara_referencia', ''),
+                help="Identificación de la lámpara de referencia"
+            )
+            
+            lampara_nueva = st.text_input(
+                "Lámpara Nueva",
+                value=st.session_state.service_info.get('lampara_nueva', ''),
+                help="Identificación de la lámpara nueva instalada"
+            )
+        
+        st.markdown("---")
         
         notas = st.text_area(
             "Notas Adicionales",
@@ -299,7 +343,12 @@ def main():
                 'cliente': cliente,
                 'ubicacion': ubicacion,
                 'modelo': modelo,
-                'contexto': contexto,
+                'mantenimiento': mantenimiento,
+                'ajuste_baseline': ajuste_baseline,
+                'lampara_referencia': lampara_referencia,
+                'lampara_nueva': lampara_nueva,
+                'validacion_optica': validacion_optica,
+                'predicciones_muestras': predicciones_muestras,
                 'notas': notas
             }
             st.success("✅ Información actualizada")
@@ -433,7 +482,12 @@ if __name__ == "__main__":
             'cliente': '',
             'ubicacion': '',
             'modelo': '',
-            'contexto': '',
+            'mantenimiento': False,
+            'ajuste_baseline': False,
+            'lampara_referencia': '',
+            'lampara_nueva': '',
+            'validacion_optica': False,
+            'predicciones_muestras': False,
             'notas': ''
         }
     
