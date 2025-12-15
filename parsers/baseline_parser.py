@@ -113,26 +113,92 @@ class BaselineParser:
         """Extrae datos de verificación post-ajuste"""
         verification = {}
         verif_section = self.soup.find('div', id='verification-section')
-        if verif_section:
-            # Buscar métricas de verificación
-            table = verif_section.find('table')
-            if table:
-                metrics = {}
-                for row in table.find_all('tr')[1:]:
-                    cells = row.find_all('td')
-                    if len(cells) >= 2:
-                        metric = cells[0].get_text(strip=True)
-                        value = cells[1].get_text(strip=True)
-                        metrics[metric] = value
-                verification['metricas'] = metrics
-            
-            # Buscar conclusión
-            conclusion = verif_section.find('p', class_='conclusion')
-            if conclusion:
-                verification['conclusion'] = conclusion.get_text(strip=True)
         
-        return verification
-    
+        if not verif_section:
+            return verification
+        
+        # ============================================
+        # 1. EXTRAER MÉTRICAS DE LA TABLA
+        # ============================================
+        info_boxes = verif_section.find_next_siblings('div', class_='info-box')
+        
+        for box in info_boxes:
+            h2 = box.find('h2')
+            if h2 and 'Métricas de Verificación' in h2.get_text():
+                table = box.find('table')
+                if table:
+                    metrics = {}
+                    for row in table.find_all('tr')[1:]:  # Skip header
+                        cells = row.find_all('td')
+                        if len(cells) >= 2:
+                            metric = cells[0].get_text(strip=True)
+                            value = cells[1].get_text(strip=True)
+                            metrics[metric] = value
+                    verification['metricas'] = metrics
+                break
+        
+        # ============================================
+        # 2. DETERMINAR ESTADO BASADO EN MÉTRICAS
+        # ============================================
+        if verification.get('metricas'):
+            try:
+                # Extraer valores numéricos
+                rms_str = verification['metricas'].get('RMS', '0')
+                max_diff_str = verification['metricas'].get('Diferencia Máxima', '0')
+                
+                # Limpiar y convertir a float
+                rms = float(rms_str.replace(',', '.'))
+                max_diff = float(max_diff_str.replace(',', '.'))
+                
+                # ⭐ UMBRALES ACTUALIZADOS - MÁS EXIGENTES
+                if rms < 0.005 and max_diff < 0.01:
+                    verification['estado'] = 'EXCELENTE'
+                elif rms < 0.01 and max_diff < 0.015:
+                    verification['estado'] = 'BUENO'
+                elif rms < 0.015 and max_diff < 0.03:
+                    verification['estado'] = 'ACEPTABLE'
+                else:
+                    verification['estado'] = 'REQUIERE REVISIÓN'
+                    
+            except (ValueError, AttributeError):
+                verification['estado'] = 'UNKNOWN'
+        
+        # ============================================
+        # 3. EXTRAER CONCLUSIÓN DEL HTML
+        # ============================================
+        status_divs = verif_section.find_all('div', class_=re.compile(r'status-(good|warning|bad|fail)'))
+        
+        if not status_divs:
+            next_divs = verif_section.find_next_siblings('div')
+            for div in next_divs:
+                if any(cls in div.get('class', []) for cls in ['status-good', 'status-warning', 'status-bad', 'status-fail']):
+                    status_divs = [div]
+                    break
+        
+        if status_divs:
+            status_div = status_divs[0]
+            
+            # Extraer conclusión completa
+            paragraphs = status_div.find_all('p')
+            if paragraphs:
+                conclusion_parts = []
+                for p in paragraphs:
+                    text = p.get_text(strip=True)
+                    if text:
+                        conclusion_parts.append(text)
+                verification['conclusion'] = ' '.join(conclusion_parts)
+            
+            # Extraer recomendaciones
+            ul = status_div.find('ul')
+            if ul:
+                recommendations = []
+                for li in ul.find_all('li'):
+                    recommendations.append(li.get_text(strip=True))
+                if recommendations:
+                    verification['recomendaciones'] = recommendations
+        
+        return verification        
+        
     def _extract_plotly_charts(self) -> List[Dict[str, str]]:
         """Extrae scripts de gráficos Plotly embebidos"""
         charts = []

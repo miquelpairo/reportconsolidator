@@ -447,83 +447,80 @@ class ReportConsolidatorV2:
             return "Estado de validación indeterminado. Revisar informes individuales."
     
     def _generate_baseline_summary(self) -> str:
-        """Genera resumen extenso parseado del baseline"""
-        info_cliente = self.baseline_data.get('info_cliente', {})
-        diagnostico = self.baseline_data.get('diagnostico_wstd', {})
-        detalles = self.baseline_data.get('detalles_proceso', {})
-        stats = self.baseline_data.get('estadisticas_correccion', {})
-        baseline_info = self.baseline_data.get('baseline_generado', {})
+        """Genera resumen extenso parseado del baseline - VERSIÓN SIMPLIFICADA"""
+        
+        # Verificación es lo más importante
         verificacion = self.baseline_data.get('verificacion', {})
         
-        # Construir tabla info cliente
-        info_rows = []
-        for key, value in info_cliente.items():
-            info_rows.append(f"<tr><td><strong>{key}</strong></td><td>{value}</td></tr>")
-        
-        # Construir diagnóstico
-        diagnostico_html = ""
-        if diagnostico.get('metricas'):
-            diag_rows = []
-            for key, value in diagnostico['metricas'].items():
-                diag_rows.append(f"<tr><td><strong>{key}</strong></td><td>{value}</td></tr>")
-            diagnostico_html = f"""
-            <h3>Diagnóstico WSTD Inicial</h3>
-            <p><strong>Estado:</strong> {diagnostico.get('estado', 'N/A')}</p>
-            <table>
-                {''.join(diag_rows)}
-            </table>
-            """
-        
-        # Construir estadísticas
-        stats_rows = []
-        for key, value in stats.items():
-            stats_rows.append(f"<tr><td><strong>{key}</strong></td><td>{value}</td></tr>")
-        
-        # Construir verificación
+        # Construir verificación (solo si existe)
         verif_html = ""
         if verificacion.get('metricas'):
             verif_rows = []
             for key, value in verificacion['metricas'].items():
                 verif_rows.append(f"<tr><td><strong>{key}</strong></td><td>{value}</td></tr>")
+            
+            # Determinar estado visual
+            conclusion = verificacion.get('conclusion', '')
+            estado = verificacion.get('estado', 'UNKNOWN')
+            
+            # Mapear estado a clase CSS
+            status_class_map = {
+                'EXCELENTE': 'ok',
+                'BUENO': 'ok',
+                'ACEPTABLE': 'warning',
+                'REQUIERE REVISIÓN': 'fail',
+                'UNKNOWN': 'info'
+            }
+            status_class = status_class_map.get(estado, 'info')
+            
+            # Iconos por estado
+            status_icon_map = {
+                'EXCELENTE': '✅',
+                'BUENO': '✅',
+                'ACEPTABLE': '⚠️',
+                'REQUIERE REVISIÓN': '❌',
+                'UNKNOWN': 'ℹ️'
+            }
+            status_icon = status_icon_map.get(estado, 'ℹ️')
+            
             verif_html = f"""
-            <h3>Verificación Post-Ajuste</h3>
+            <h3>📊 Métricas de Verificación Post-Ajuste</h3>
             <table>
                 {''.join(verif_rows)}
             </table>
-            <p style="margin-top: 15px;"><em>{verificacion.get('conclusion', '')}</em></p>
+            
+            <div class="info-box status-box-{status_class}" style="margin-top: 20px; padding: 15px; border-radius: 8px;">
+                <h4 style="margin-top: 0;">{status_icon} Conclusión: {estado}</h4>
+                <p style="margin: 10px 0 0 0; line-height: 1.6;">{conclusion}</p>
+            </div>
+            """
+        else:
+            verif_html = """
+            <div class="info-box status-box-info" style="margin-top: 20px; padding: 15px;">
+                <p><em>No hay datos de verificación disponibles en este reporte.</em></p>
+            </div>
             """
         
+        # Nota sobre gráficos
+        charts_note = """
+        <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
+            <p style="margin: 0; color: #1976d2;">
+                <strong>📈 Gráficos Interactivos:</strong> Para visualizar el overlay de espectros y la matriz RMS 
+                de verificación, abra el informe completo usando el botón "📄 Abrir Informe Completo" más abajo.
+            </p>
+        </div>
+        """
+        
         return f"""
-        <h3>Información del Cliente y Equipo</h3>
-        <table>
-            {''.join(info_rows)}
-        </table>
-        
-        {diagnostico_html}
-        
-        <h3 style="margin-top: 30px;">Estadísticas de la Corrección</h3>
-        <table>
-            {''.join(stats_rows)}
-        </table>
-        
-        {verif_html}
+            {verif_html}
+            {charts_note}
         """
     
     def _generate_validation_summary(self) -> str:
-        """Genera resumen extenso parseado de validación"""
-        service_info = self.validation_data.get('info_servicio', {})
-        exec_summary = self.validation_data.get('resumen_ejecutivo', {})
+        """Genera resumen extenso parseado de validación - VERSIÓN SIMPLIFICADA"""
         criterios = self.validation_data.get('criterios_validacion', {})
         global_stats = self.validation_data.get('estadisticas_globales', {})
         detailed = self.validation_data.get('resultados_detallados', [])
-        
-        # Información del servicio
-        service_rows = []
-        for key, value in service_info.items():
-            service_rows.append(f"<tr><td><strong>{key}</strong></td><td>{value}</td></tr>")
-        
-        # Métricas del resumen ejecutivo
-        metrics = exec_summary.get('metricas', {})
         
         # Criterios de validación
         criterios_html = ""
@@ -538,7 +535,10 @@ class ReportConsolidatorV2:
                     </tr>
                 """)
             criterios_html = f"""
-            <h3 style="margin-top: 30px;">Criterios de Validación</h3>
+            <h3>📋 Criterios de Validación</h3>
+            <p style='color: #6c757d; font-size: 0.95em;'>
+                <em>Umbrales utilizados para evaluar la calidad óptica de cada estándar.</em>
+            </p>
             <table>
                 <tr>
                     <th>Parámetro</th>
@@ -549,100 +549,102 @@ class ReportConsolidatorV2:
             </table>
             """
         
-        # Resultados detallados
-        detail_rows = []
-        for result in detailed:
-            status_class = result['estado'].lower()
-            status_icon = {
-                'ok': '✅',
-                'warning': '⚠️',
-                'fail': '❌'
-            }.get(status_class, 'ℹ️')
-            
-            detail_rows.append(f"""
-                <tr>
-                    <td><strong>{result['estandar']}</strong></td>
-                    <td>{result.get('lampara_ref', 'N/A')}</td>
-                    <td>{result.get('lampara_nueva', 'N/A')}</td>
-                    <td>{result['correlacion']}</td>
-                    <td>{result['max_diff']}</td>
-                    <td>{result['rms']}</td>
-                    <td>{status_icon} {result['estado']}</td>
-                </tr>
-            """)
-        
         # Estadísticas globales
-        stats_rows = []
-        for metric_data in global_stats.get('metricas_agregadas', []):
-            stats_rows.append(f"""
+        stats_html = ""
+        if global_stats.get('metricas_agregadas'):
+            stats_rows = []
+            for metric_data in global_stats.get('metricas_agregadas', []):
+                stats_rows.append(f"""
+                    <tr>
+                        <td><strong>{metric_data['metrica']}</strong></td>
+                        <td>{metric_data['minimo']}</td>
+                        <td>{metric_data['maximo']}</td>
+                        <td>{metric_data['media']}</td>
+                        <td>{metric_data['desv_est']}</td>
+                    </tr>
+                """)
+            
+            stats_html = f"""
+            <h3 style="margin-top: 30px;">📊 Estadísticas Globales</h3>
+            <p style='color: #6c757d; font-size: 0.95em;'>
+                <em>Métricas agregadas de todos los estándares analizados.</em>
+            </p>
+            <table>
                 <tr>
-                    <td><strong>{metric_data['metrica']}</strong></td>
-                    <td>{metric_data['minimo']}</td>
-                    <td>{metric_data['maximo']}</td>
-                    <td>{metric_data['media']}</td>
-                    <td>{metric_data['desv_est']}</td>
+                    <th>Métrica</th>
+                    <th>Mínimo</th>
+                    <th>Máximo</th>
+                    <th>Media</th>
+                    <th>Desv. Est.</th>
                 </tr>
-            """)
+                {''.join(stats_rows)}
+            </table>
+            """
+        
+        # Resultados detallados por estándar
+        detail_html = ""
+        if detailed:
+            detail_rows = []
+            for result in detailed:
+                status_class = result['estado'].lower()
+                status_icon = {
+                    'ok': '✅',
+                    'warning': '⚠️',
+                    'fail': '❌'
+                }.get(status_class, 'ℹ️')
+                
+                detail_rows.append(f"""
+                    <tr>
+                        <td><strong>{result['estandar']}</strong></td>
+                        <td>{result.get('lampara_ref', 'N/A')}</td>
+                        <td>{result.get('lampara_nueva', 'N/A')}</td>
+                        <td>{result['correlacion']}</td>
+                        <td>{result['max_diff']}</td>
+                        <td>{result['rms']}</td>
+                        <td>{status_icon} {result['estado']}</td>
+                    </tr>
+                """)
+            
+            detail_html = f"""
+            <h3 style="margin-top: 30px;">🔬 Resultados por Estándar</h3>
+            <p style='color: #6c757d; font-size: 0.95em;'>
+                <em>Evaluación detallada de cada estándar óptico medido.</em>
+            </p>
+            <table>
+                <tr>
+                    <th>Estándar (ID)</th>
+                    <th>Lámpara Ref.</th>
+                    <th>Lámpara Nueva</th>
+                    <th>Correlación</th>
+                    <th>Max Δ (AU)</th>
+                    <th>RMS</th>
+                    <th>Estado</th>
+                </tr>
+                {''.join(detail_rows)}
+            </table>
+            """
+        
+        # Nota sobre gráficos
+        charts_note = """
+        <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
+            <p style="margin: 0; color: #1976d2;">
+                <strong>📈 Ver Análisis Completo:</strong> Para visualizar los gráficos de 
+                correlación espectral, overlays y análisis detallado, abra el informe completo 
+                usando el botón "📄 Abrir Informe Completo" más abajo.
+            </p>
+        </div>
+        """
         
         return f"""
-        <h3>Información del Servicio</h3>
-        <table>
-            {''.join(service_rows)}
-        </table>
-        
-        <h3 style="margin-top: 30px;">Resumen de Resultados</h3>
-        <div class="metrics-grid">
-            <div class="metric-card total">
-                <div class="metric-value">{metrics.get('Total Estándares', '0')}</div>
-                <div class="metric-label">Total</div>
-            </div>
-            <div class="metric-card ok">
-                <div class="metric-value">{metrics.get('Validados', '0')}</div>
-                <div class="metric-label">✅ Validados</div>
-            </div>
-            <div class="metric-card warning">
-                <div class="metric-value">{metrics.get('Revisar', '0')}</div>
-                <div class="metric-label">⚠️ Revisar</div>
-            </div>
-            <div class="metric-card fail">
-                <div class="metric-value">{metrics.get('Fallidos', '0')}</div>
-                <div class="metric-label">❌ Fallidos</div>
-            </div>
-        </div>
-        
-        {criterios_html}
-        
-        <h3 style="margin-top: 30px;">Estadísticas Globales</h3>
-        <table>
-            <tr>
-                <th>Métrica</th>
-                <th>Mínimo</th>
-                <th>Máximo</th>
-                <th>Media</th>
-                <th>Desv. Est.</th>
-            </tr>
-            {''.join(stats_rows)}
-        </table>
-        
-        <h3 style="margin-top: 30px;">Resultados por Estándar</h3>
-        <table>
-            <tr>
-                <th>Estándar (ID)</th>
-                <th>Lámpara Ref.</th>
-                <th>Lámpara Nueva</th>
-                <th>Correlación</th>
-                <th>Max Δ (AU)</th>
-                <th>RMS</th>
-                <th>Estado</th>
-            </tr>
-            {''.join(detail_rows)}
-        </table>
+            {criterios_html}
+            {stats_html}
+            {detail_html}
+            {charts_note}
         """
     
     def _generate_predictions_summary(self) -> str:
-        """Genera resumen extenso parseado de predicciones"""
+        """Genera resumen extenso parseado de predicciones - VERSIÓN SIMPLIFICADA"""
         info_general = self.predictions_data.get('info_general', {})
-        productos = self.predictions_data.get('productos', [])
         
         # Información de lámparas
         lamparas_html = ""
@@ -658,62 +660,31 @@ class ReportConsolidatorV2:
             </div>
             """
         
-        # Construir primeros 3 productos como ejemplo
-        productos_html = []
-        for producto in productos[:3]:
-            lamparas_rows = []
-            for lampara in producto['lamparas']:
-                params_cells = []
-                for param in producto['parametros'][:4]:  # Primeros 4 parámetros
-                    value = lampara.get(param, 'N/A')
-                    params_cells.append(f"<td>{value}</td>")
-                
-                lamparas_rows.append(f"""
-                    <tr>
-                        <td class="lamp-name">{lampara.get('Lámpara', 'N/A')}</td>
-                        <td>{lampara.get('N', 'N/A')}</td>
-                        {''.join(params_cells)}
-                    </tr>
-                """)
-            
-            param_headers = ''.join([f"<th>{p.split('|')[0]}</th>" for p in producto['parametros'][:4]])
-            
-            productos_html.append(f"""
-                <h4 style="margin-top: 20px;">{producto['nombre']}</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Lámpara</th>
-                            <th>N</th>
-                            {param_headers}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {''.join(lamparas_rows)}
-                    </tbody>
-                </table>
-            """)
-        
-        if len(productos) > 3:
-            productos_html.append(f"<p style='margin-top: 15px;'><em>... y {len(productos) - 3} productos más (ver informe completo)</em></p>")
+        # Nota sobre contenido completo
+        charts_note = """
+        <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
+            <p style="margin: 0; color: #1976d2;">
+                <strong>📈 Ver Análisis Completo:</strong> Para visualizar estadísticas detalladas, 
+                gráficos comparativos y análisis de diferencias por producto, abra el informe completo 
+                usando el botón "📄 Abrir Informe Completo" más abajo.
+            </p>
+        </div>
+        """
         
         return f"""
-        <h3>Información General</h3>
-        <table>
-            <tr><td><strong>Sensor NIR</strong></td><td>{info_general.get('Sensor NIR', 'N/A')}</td></tr>
-            <tr><td><strong>Fecha del Reporte</strong></td><td>{info_general.get('Fecha del Reporte', 'N/A')}</td></tr>
-            <tr><td><strong>Productos Analizados</strong></td><td>{info_general.get('Productos Analizados', 'N/A')}</td></tr>
-            <tr><td><strong>Lámparas Comparadas</strong></td><td>{info_general.get('Lámparas Comparadas', 'N/A')}</td></tr>
-        </table>
-        
-        {lamparas_html}
-        
-        <h3 style="margin-top: 30px;">Resultados por Producto (Vista previa)</h3>
-        <p style="color: #6c757d; font-size: 0.95em;">
-            <em>Mostrando primeros productos. Para ver todos los resultados y gráficos, expandir informe completo.</em>
-        </p>
-        
-        {''.join(productos_html)}
+            <h3>📊 Información General</h3>
+            <p style='color: #6c757d; font-size: 0.95em;'>
+                <em>Resumen del análisis de predicciones NIR entre diferentes lámparas.</em>
+            </p>
+            <table>
+                <tr><td><strong>Sensor NIR</strong></td><td>{info_general.get('Sensor NIR', 'N/A')}</td></tr>
+                <tr><td><strong>Fecha del Reporte</strong></td><td>{info_general.get('Fecha del Reporte', 'N/A')}</td></tr>
+                <tr><td><strong>Productos Analizados</strong></td><td>{info_general.get('Productos Analizados', 'N/A')}</td></tr>
+                <tr><td><strong>Lámparas Comparadas</strong></td><td>{info_general.get('Lámparas Comparadas', 'N/A')}</td></tr>
+            </table>
+            
+            {lamparas_html}
+            {charts_note}
         """
     
     def _generate_index(self) -> str:
